@@ -29,6 +29,7 @@ $VmAdminUser    = "azureuser"
 $VmLocation       = "westeurope"
 
 
+
 # ============================================================
 # 1) Login + set subscription
 # ============================================================
@@ -149,13 +150,19 @@ Write-Host "TenantId: $TenantId"
 # The only thing required is to store the DL Secret, to be used later: 
 
 
-$DLSecret = az bot directline show `
+$DLExtensionKey = az bot directline show `
   --name $BotName `
   --resource-group $RG `
   --query "properties.properties.extensionKey1" `
   -o tsv
 
-Write-Host "DLSecret (primary channel key): $DLSecret"
+Write-Host "DLExtensionKey(primary channel key): $DLExtensionKey"
+
+# Direct Line channel secrets are being suppressed (not returned) by the Azure CLI/API. This is a security feature.
+# Get the DL Secret manually from DL channel. 
+
+$DLSecret = "xxx"
+
 
 # ============================================================
 # 8) Set DL-ASE settings + bot auth settings, restart
@@ -166,7 +173,7 @@ az webapp config appsettings set `
   --resource-group $RG `
   --name $WebAppName `
   --settings `
-  "DirectLineExtensionKey=$DLSecret" `
+  "DirectLineExtensionKey=$DLExtensionKey" `
   "DIRECTLINE_EXTENSION_VERSION=latest" `
   "MicrosoftAppType=SingleTenant" `
   "MicrosoftAppId=$AppId" `
@@ -306,14 +313,14 @@ $IndexHtml = @"
 Set-Content -Path (Join-Path $IndexDir "index.html") -Value $IndexHtml -Encoding utf8
 
 #Optional - Add a React Client 
-# $WebAppUrl: already computed above (e.g., "https://$WebAppName.azurewebsites.net")
-# $DLSecret : set earlier from Direct Line (channel) secret or per-site secret
-# --- Add React client: wwwroot/react/index.html ---
+# Ensure $WebAppUrl and $DLSecret have simple string values:
+
 
 $ReactDir  = Join-Path $BotPath "wwwroot\react"
 New-Item -ItemType Directory -Force -Path $ReactDir | Out-Null
 
-$ReactHtml = @"
+
+$ReactHtml = @'
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
@@ -343,8 +350,8 @@ $ReactHtml = @"
     <div id="root" role="main"></div>
     <script type="text/babel">
       // NOTE: TEST ONLY — do not expose Direct Line secrets in production.
-      const WEBAPP_URL = "$WebAppUrl";
-      const DL_SECRET  = "$DLSecret";
+      const WEBAPP_URL = "__WEBAPP_URL__";
+      const DL_SECRET  = "__DL_SECRET__"; // must be a plain secret string (not JSON)
       const { ReactWebChat, createDirectLineAppServiceExtension } = window.WebChat;
       function App() {
         const [directLine, setDirectLine] = React.useState(null);
@@ -352,7 +359,12 @@ $ReactHtml = @"
         React.useEffect(() => {
           (async () => {
             try {
-              const res = await fetch(\`\${WEBAPP_URL}/.bot/v3/directline/tokens/generate\`, {
+              // Guard: fail fast if secret is empty
+              if (!DL_SECRET || DL_SECRET.trim().length === 0) {
+                throw new Error("DL_SECRET is empty. Extract only the secret string (not the whole JSON).");
+              }
+              // ✅ Template literal uses backticks; preserved by single-quoted here-string
+              const res = await fetch(`${WEBAPP_URL}/.bot/v3/directline/tokens/generate`, {
                 method: "POST",
                 headers: {
                   "Authorization": "Bearer " + DL_SECRET,
@@ -367,7 +379,7 @@ $ReactHtml = @"
               }
               const { token } = await res.json();
               const dl = await createDirectLineAppServiceExtension({
-                domain: \`\${WEBAPP_URL}/.bot/v3/directline\`,
+                domain: `${WEBAPP_URL}/.bot/v3/directline`,
                 token
               });
               setDirectLine(dl);
@@ -390,8 +402,12 @@ $ReactHtml = @"
     </script>
   </body>
 </html>
-"@
-Set-Content -Path (Join-Path $ReactDir "index.html") -Value $ReactHtml -Encoding utf8
+'@
+# Safe token replacement (no regex) — preserves all backticks and JSX braces
+$ReactHtml = $ReactHtml.Replace('__WEBAPP_URL__', $WebAppUrl).Replace('__DL_SECRET__', $DLSecret)
+
+# Write out the file
+Set-Content -Path (Join-Path $ReactDir 'index.html') -Value $ReactHtml -Encoding utf8
 
 
 $ORIGINAL_WD = $PWD
@@ -514,4 +530,5 @@ echo "ZipPath=$ZipPath"
 # VM creation
 # NOTE: Do NOT echo SecureString directly
 echo "VmPass=" + $VmPass
+
 

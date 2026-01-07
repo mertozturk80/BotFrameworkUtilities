@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
@@ -27,9 +26,9 @@
   <body>
     <div id="root" role="main"></div>
     <script type="text/babel">
-      // NOTE: TEST ONLY  do not expose Direct Line secrets in production.
-      const WEBAPP_URL = "https://<appname>.azurewebsites.net";
-      const DL_SECRET  = "<DLSecret>";
+      // NOTE: TEST ONLY — do not expose Direct Line secrets in production.
+      const WEBAPP_URL = "https://appname.azurewebsites.net";
+      const DL_SECRET  = ".."; // must be a plain secret string (not JSON)
       const { ReactWebChat, createDirectLineAppServiceExtension } = window.WebChat;
       function App() {
         const [directLine, setDirectLine] = React.useState(null);
@@ -37,7 +36,12 @@
         React.useEffect(() => {
           (async () => {
             try {
-              const res = await fetch(\\/.bot/v3/directline/tokens/generate\, {
+              // Guard: fail fast if secret is empty
+              if (!DL_SECRET || DL_SECRET.trim().length === 0) {
+                throw new Error("DL_SECRET is empty. Extract only the secret string (not the whole JSON).");
+              }
+              // ✅ Template literal uses backticks; preserved by single-quoted here-string
+              const res = await fetch(`${WEBAPP_URL}/.bot/v3/directline/tokens/generate`, {
                 method: "POST",
                 headers: {
                   "Authorization": "Bearer " + DL_SECRET,
@@ -52,7 +56,7 @@
               }
               const { token } = await res.json();
               const dl = await createDirectLineAppServiceExtension({
-                domain: \\/.bot/v3/directline\,
+                domain: `${WEBAPP_URL}/.bot/v3/directline`,
                 token
               });
               setDirectLine(dl);
@@ -66,7 +70,7 @@
           return <div style={{ padding: 16, color: "crimson" }}>Error: {error}</div>;
         }
         if (!directLine) {
-          return <div style={{ padding: 16 }}>Loading Web Chat</div>;
+          return <div style={{ padding: 16 }}>Loading Web Chat…</div>;
         }
         return <ReactWebChat directLine={directLine} styleOptions={{ hideUploadButton: true }} />;
       }
