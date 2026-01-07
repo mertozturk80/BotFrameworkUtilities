@@ -1,7 +1,7 @@
 # ============================================================
 # Fixed parameters (NO suffix). Edit ONLY Subscripton name and Suffix for uniqueness.
 # ============================================================
-$SubscriptionId = "83454b68-9b7f-41a7-b08e-936b629f865b"
+$SubscriptionId = "000000000000000000000"
 $RG             = "BotFrameworkASETest"
 $Location       = "westeurope"
 $Suffix = "123"
