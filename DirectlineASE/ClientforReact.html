@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Web Chat (React sample)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- React UMD + Web Chat UMD -->
+    <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin="anonymous" src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+    <!-- Babel only for dev/demo so we can use JSX directly -->
+    <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      html, body { height: 100%; background-color: #f7f7f7; }
+      body { margin: 0; }
+      #root {
+        height: 100%;
+        margin: auto;
+        max-width: 600px;
+        min-width: 360px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.08);
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" role="main"></div>
+    <script type="text/babel">
+      // NOTE: TEST ONLY  do not expose Direct Line secrets in production.
+      const WEBAPP_URL = "https://<appname>.azurewebsites.net";
+      const DL_SECRET  = "<DLSecret>";
+      const { ReactWebChat, createDirectLineAppServiceExtension } = window.WebChat;
+      function App() {
+        const [directLine, setDirectLine] = React.useState(null);
+        const [error, setError] = React.useState(null);
+        React.useEffect(() => {
+          (async () => {
+            try {
+              const res = await fetch(\\/.bot/v3/directline/tokens/generate\, {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer " + DL_SECRET,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  user: { id: "react_test_user", name: "React Test" }
+                })
+              });
+              if (!res.ok) {
+                throw new Error("Token generate failed: " + res.status + " " + res.statusText);
+              }
+              const { token } = await res.json();
+              const dl = await createDirectLineAppServiceExtension({
+                domain: \\/.bot/v3/directline\,
+                token
+              });
+              setDirectLine(dl);
+            } catch (e) {
+              console.error(e);
+              setError(e.message || String(e));
+            }
+          })();
+        }, []);
+        if (error) {
+          return <div style={{ padding: 16, color: "crimson" }}>Error: {error}</div>;
+        }
+        if (!directLine) {
+          return <div style={{ padding: 16 }}>Loading Web Chat</div>;
+        }
+        return <ReactWebChat directLine={directLine} styleOptions={{ hideUploadButton: true }} />;
+      }
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
