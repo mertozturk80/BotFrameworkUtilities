@@ -1,5 +1,9 @@
 
-# DL ASE isolation on top of CreateDirectlineASEWithEchoBot.ps1 script. 
+# ============================================================
+# Summary: Application of DL ASE Isolation Steps for an already created bot.
+# Prequisities: "DeployBBEchoBotDirectlineASEToNewRG.ps1"
+# Required parameters: `SubscriptionId`, `RG`, `Location`, `VnetName`, `WebAppName`, `VmSubnetCidr`; optional `SafeDelay` (seconds between network changes).
+# ============================================================
 
 # ============================================================
 # 3a) Extra subnets for integration + private endpoints

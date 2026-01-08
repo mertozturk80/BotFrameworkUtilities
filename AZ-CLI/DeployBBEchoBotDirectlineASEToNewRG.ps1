@@ -1,7 +1,7 @@
 # ============================================================
 # Fixed parameters (NO suffix). Edit ONLY Subscripton name and Suffix for uniqueness.
 # ============================================================
-$SubscriptionId = "83454b68-9b7f-41a7-b08e-936b629f865b"
+$SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
 $RG             = "BotFrameworkASETest"
 $Location       = "westeurope"
 $Suffix = "123"
@@ -100,19 +100,11 @@ $END_DATE = (Get-Date).ToUniversalTime().AddDays(7).ToString("yyyy-MM-ddTHH:mm:s
 
 # Reset app credential with 1-week expiry
 $Secret = az ad app credential reset --id "$AppId" --display-name "dlase-secret"  --end-date "$END_DATE"  | ConvertFrom-Json
-
-
-
- az ad app credential reset `   --id $AppId  --display-name "dlase-secret"  --end-date $EndDate   | ConvertFrom-Json
-
-
-$Secret    = az ad app credential reset --id $AppId --display-name "dlase-secret" | ConvertFrom-Json
-
 $AppSecret = $Secret.password
 $TenantId  = (az account show | ConvertFrom-Json).tenantId
 
 
-Write-Host "WebAppUrl:   $AppId"
+Write-Host "Azure AppId:   $AppId"
 Write-Host "TenantId: $TenantId"
 Write-Host "AppSecret: $AppSecret"
 
@@ -183,7 +175,41 @@ az webapp config appsettings set `
 az webapp restart --resource-group $RG --name $WebAppName
 
 # ============================================================
-# 9) Build + deploy Echo Bot sample with Named Pipes enabled (local commands)
+# 9) Capture Azure Bot DL Secret (best-effort)
+# ============================================================
+# Keys are redacted on GET; attempt management action listChannelWithKeys, else instruct manual/Key Vault.
+
+$ApiVersion = '2023-09-15-preview'
+$BaseUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$RG/providers/Microsoft.BotService/botServices/$BotName/channels/DirectLineChannel"
+$ListKeysUrl = "$BaseUri/listChannelWithKeys?api-version=$ApiVersion"
+
+$DLSecret = $null
+try {
+  $responseJson = az rest `
+    --method post `
+    --uri $ListKeysUrl `
+    --body '{}' `
+    -o json
+
+  $response = $responseJson | ConvertFrom-Json
+  $sites = $response.properties.properties.sites 
+  $site = $sites | Select-Object -First 1
+  if ($site) {
+    $DLSecret = $site.key 
+  }
+} catch {
+  Write-Host "WARN: listChannelWithKeys failed: $($_.Exception.Message)"
+}
+
+if ($DLSecret) {
+  Write-Host "Captured DLSecret (keep secure): $DLSecret"
+} else {
+    Write-Host "DLSecret not retrievable via API. Regenerate in Portal and store in Key Vault, or set DLSecret manually."
+    $DLSecret = "ToBeSetManually"
+}
+
+# ============================================================
+# 10) Build + deploy Echo Bot sample with Named Pipes enabled (local commands)
 #     Named pipes requirement: UseWebSockets + UseNamedPipes("<site>.directline"). [2](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-channel-directline-extension-net-bot?view=azure-bot-service-4.0)[1](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-channel-directline-extension-net-bot?view=azure-bot-service-4.0)
 # ============================================================
 
@@ -438,7 +464,7 @@ az webapp deploy `
 az webapp restart --resource-group $RG --name $WebAppName
 
 # ============================================================
-# 10) Create Windows VM in some VNet (no public IP) + to test /.bot from VM
+# 11) Create Windows VM in some VNet (no public IP) + to test /.bot from VM
 # ============================================================
 
 $VmPassSecure = Read-Host "Enter password for Windows VM local admin ($VmAdminUser)" -AsSecureString
@@ -487,48 +513,75 @@ Write-Host "VM:     $VmName"
 Write-Host "RG:     $RG"
 
 # ============================================================
-# 10) ECHO all the variables after the operations: 
+# 12) ECHO all the variables after the operations: 
 # ============================================================
 
-# ===== UNSAFE ECHO (with secrets/keys created. You can mask them if you like) =====
-echo "SubscriptionId=$SubscriptionId"
-echo "RG=$RG"
-echo "Location=$Location"
-echo "VnetName=$VnetName"
-echo "AppSubnetName=$AppSubnetName"
-echo "VmSubnetName=$VmSubnetName"
-echo "VnetCidr=$VnetCidr"
-echo "AppSubnetCidr=$AppSubnetCidr"
-echo "VmSubnetCidr=$VmSubnetCidr"
-echo "PlanName=$PlanName"
-echo "WebAppName=$WebAppName"
-echo "Runtime=$Runtime"
-echo "BotName=$BotName"
-echo "AppRegName=$AppRegName"
-echo "VmName=$VmName"
-echo "VmSize=$VmSize"
-echo "VmAdminUser=$VmAdminUser"
-echo "VmLocation=$VmLocation"
-echo "SafeDelay=$SafeDelay"
-echo "WorkDir=$WorkDir"
+# ===== REPLAY VARS OUTPUT (single one-liner for copy/paste) =====
+# Emits one PowerShell command with all assignments; easier to reuse.
+# WARNING: Contains secrets (e.g., AppSecret, DLSecret, VmPass). Handle securely.
+
+function Build-AssignPair {
+  param(
+    [Parameter(Mandatory=$true)][string]$Name,
+    [Parameter()][object]$Value
+  )
+  $text = [string]$Value
+  $escaped = $text -replace "'", "''"
+  return ("`$" + $Name + "='" + $escaped + "'")
+}
+
+$pairs = @()
+$pairs += Build-AssignPair 'SubscriptionId' $SubscriptionId
+$pairs += Build-AssignPair 'RG' $RG
+$pairs += Build-AssignPair 'Location' $Location
+$pairs += Build-AssignPair 'Suffix' $Suffix
+
+$pairs += Build-AssignPair 'VnetName' $VnetName
+$pairs += Build-AssignPair 'AppSubnetName' $AppSubnetName
+$pairs += Build-AssignPair 'VmSubnetName' $VmSubnetName
+$pairs += Build-AssignPair 'VnetCidr' $VnetCidr
+$pairs += Build-AssignPair 'AppSubnetCidr' $AppSubnetCidr
+$pairs += Build-AssignPair 'VmSubnetCidr' $VmSubnetCidr
+
+$pairs += Build-AssignPair 'PlanName' $PlanName
+$pairs += Build-AssignPair 'WebAppName' $WebAppName
+$pairs += Build-AssignPair 'Runtime' $Runtime
+$pairs += Build-AssignPair 'BotName' $BotName
+$pairs += Build-AssignPair 'AppRegName' $AppRegName
+
+$pairs += Build-AssignPair 'VmName' $VmName
+$pairs += Build-AssignPair 'VmSize' $VmSize
+$pairs += Build-AssignPair 'VmAdminUser' $VmAdminUser
+$pairs += Build-AssignPair 'VmLocation' $VmLocation
+$pairs += Build-AssignPair 'SafeDelay' $SafeDelay
+$pairs += Build-AssignPair 'WorkDir' $WorkDir
+
 # Derived
-echo "WebAppUrl=$WebAppUrl"
-echo "BotEndpoint=$BotEndpoint"
+$pairs += Build-AssignPair 'WebAppUrl' $WebAppUrl
+$pairs += Build-AssignPair 'BotEndpoint' $BotEndpoint
+
 # App registration
-echo "AppId=$AppId"
-echo "TenantId=$TenantId"
-echo "AppSecret=$AppSecret"
+$pairs += Build-AssignPair 'AppId' $AppId
+$pairs += Build-AssignPair 'TenantId' $TenantId
+$pairs += Build-AssignPair 'END_DATE' $END_DATE
+$pairs += Build-AssignPair 'AppSecret' $AppSecret   # Sensitive
+
 # Bot resource
-echo "BotResourceId=$BotResourceId"
+$pairs += Build-AssignPair 'BotResourceId' $BotResourceId
+
 # Direct Line channel config
-echo "DLSecret=" + $DLSecret
+$pairs += Build-AssignPair 'DLExtensionKey' $DLExtensionKey
+$pairs += Build-AssignPair 'DLSecret' $DLSecret     # Sensitive
+
 # Build/deploy paths
-echo "BotPath=$BotPath"
-echo "Startup=$Startup"
-echo "IndexDir=$IndexDir"
-echo "ZipPath=$ZipPath"
+$pairs += Build-AssignPair 'BotPath' $BotPath
+$pairs += Build-AssignPair 'Startup' $Startup
+$pairs += Build-AssignPair 'IndexDir' $IndexDir
+$pairs += Build-AssignPair 'ZipPath' $ZipPath
+
 # VM creation
-# NOTE: Do NOT echo SecureString directly
-echo "VmPass=" + $VmPass
+$pairs += Build-AssignPair 'VmPass' $VmPass         # Sensitive
+
+Write-Output ($pairs -join '; ')
 
 
