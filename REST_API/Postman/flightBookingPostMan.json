@@ -1,0 +1,421 @@
+{
+	"info": {
+		"_postman_id": "28c24567-b7a9-4cdc-a8a6-20c122d75842",
+		"name": "EchoBot",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "CreateConversation",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "f8f89dd0-1868-4a3f-8b81-44fc2b0c20e9",
+						"exec": [
+							"var uuid = require('uuid');\r",
+							"var UserID = \"dl_\" + uuid.v4();\r",
+							"var BotID =  uuid.v4();\r",
+							"\r",
+							"pm.globals.set(\"BotID\", BotID );\r",
+							"console.log(\"BotID: \" + pm.globals.get(\"BotID\"));\r",
+							"\r",
+							"pm.globals.set(\"UserID\", UserID );\r",
+							"console.log(pm.globals.get(\"UserID\"));\r",
+							"\r",
+							"pm.globals.set(\"ServiceURL\", \"http://01e63cdd6d70.ngrok.io\");\r",
+							"console.log(\"Service URL:\" + pm.globals.get(\"ServiceURL\"));\r",
+							"\r",
+							"\r",
+							"const secret  = \"Bearer \" + \"qveltWLW4KI.ylF6V6JXPLiRJi78tD8EOvCbJA7xGS5OVvYh8ltGvoY\";\r",
+							"console.log('secret: ' + secret);\r",
+							"pm.request.headers.add({key: 'Authorization', value: secret })\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "39701d51-1343-45db-bab0-d41c237f92ca",
+						"exec": [
+							"console.log(pm.response.status);\r",
+							"\r",
+							"const responseJson = pm.response.json();\r",
+							"const DLToken = responseJson.token;\r",
+							"const DLConvID = responseJson.conversationId;\r",
+							"\r",
+							"pm.globals.set(\"DLToken\", DLToken);\r",
+							"pm.globals.set(\"DLConvID\", DLConvID);\r",
+							"pm.globals.set(\"ChannelID\", \"webchat\");\r",
+							"\r",
+							"console.log(\"Channel ID:\" + pm.globals.get(\"ChannelID\"));\r",
+							"console.log(\"convID :\" + pm.globals.get(\"DLConvID\"));\r",
+							"console.log(\"DL Token: \" + pm.globals.get(\"DLToken\"));\r",
+							"\r",
+							"console.log(pm.response.status);\r",
+							"\r",
+							"pm.test(\"Successful conversation Create\", function () {\r",
+							"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \"User\": { \"id\" : \"{{UserID}}\", \"name\": \"PostMan User\" }, \"trustedOrigins\": [\"http://localhost:3978\"] }"
+				},
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations"
+					]
+				},
+				"description": "Create Conversation"
+			},
+			"response": []
+		},
+		{
+			"name": "AddUserandBotToConversation",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "4a62f17e-12c0-4afe-8581-260b56e0a9c2",
+						"exec": [
+							"console.log(\"Channel ID:\" + pm.globals.get(\"ChannelID\"));\r",
+							"\r",
+							"const Bearer  = \"Bearer \" + pm.globals.get(\"DLToken\");\r",
+							"pm.request.headers.add({key: 'Authorization', value: Bearer })\r",
+							"console.log(\"Bearer: \" + Bearer);\r",
+							"\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "e3c064b9-a6f2-4406-b089-d3d6b7bcd96f",
+						"exec": [
+							"console.log(pm.response.status);\r",
+							"pm.test(\"Successful Conversation Update\", function () {\r",
+							"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"channelId\": \"{{ChannelID}}\",\n  \"conversation\": {\n    \"id\": \"{{DLConvID}}\"\n  },\n  \"from\": {\n    \"id\": \"{{UserID}}\",\n    \"name\": \"PostMan User\",\n    \"role\": \"user\"\n  },\n  \"membersAdded\": [\n    {\n      \"id\": \"{{BotID}}\",\n      \"name\": \"Bot\"\n    },\n    {\n      \"id\": \"{{UserID}}\",\n      \"name\": \"PostMan User\"\n    }\n  ],\n  \"membersRemoved\": [],\n  \"recipient\": {\n    \"id\": \"{{BotID}}\",\n    \"name\": \"Bot\",\n    \"role\": \"bot\"\n  },\n  \"serviceUrl\": \"{{ServiceURL}}\",\n  \"type\": \"conversationUpdate\"\n}"
+				},
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations/{{DLConvID}}/activities",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations",
+						"{{DLConvID}}",
+						"activities"
+					]
+				},
+				"description": "WebChat POST"
+			},
+			"response": []
+		},
+		{
+			"name": "SendActivityHi",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "64bd8b8f-8af3-4b4a-9b24-deb7f2a65671",
+						"exec": [
+							"const moment = require('moment');\r",
+							"pm.globals.set(\"UTCTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".347Z\");\r",
+							"pm.globals.set(\"LocalTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".347Z\");\r",
+							"console.log(\"timestamp: \", pm.globals.get(\"LocalTimestamp\"));\r",
+							"//\"2020-10-23T09:28:32.347Z\",\r",
+							"\r",
+							"console.log(\"Channel ID:\" + pm.globals.get(\"ChannelID\"));\r",
+							"\r",
+							"const Bearer  = \"Bearer \" + pm.globals.get(\"DLToken\");\r",
+							"pm.request.headers.add({key: 'Authorization', value: Bearer })\r",
+							"console.log(\"Bearer: \" + Bearer);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "5748f2e5-e437-4022-bb70-9fb1bf0fbc52",
+						"exec": [
+							"console.log(pm.response.status);\r",
+							"pm.test(\"Successful Hi request\", function () {\r",
+							"        pm.expect(pm.response.code).to.be.oneOf([200, 202]);\r",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n   \"channelId\": \"{{ChannelID}}\",\r\n  \"conversation\": {\r\n    \"id\": \"{{DLConvID}}\"\r\n  },\r\n  \"entities\": [\r\n    {\r\n      \"requiresBotState\": true,\r\n      \"supportsListening\": true,\r\n      \"supportsTts\": true,\r\n      \"type\": \"ClientCapabilities\"\r\n    }\r\n  ],\r\n  \"from\": {\r\n    \"id\": \"{{UserID}}\",\r\n    \"name\": \"PostMan User\",\r\n    \"role\": \"user\"\r\n  },\r\n  \"id\": \"{{$guid}}\",\r\n  \"localTimestamp\": \"{{LocalTimestamp}}\",\r\n  \"locale\": \"en-US\",\r\n  \"recipient\": {\r\n    \"id\": \"{{BotID}}\",\r\n    \"name\": \"Bot\",\r\n    \"role\": \"bot\"\r\n  },\r\n  \"serviceUrl\": \"{{ServiceURL}}\",\r\n  \"text\": \"Hi\",\r\n  \"textFormat\": \"plain\",\r\n  \"timestamp\": \"{{UTCTimestamp}}\",\r\n  \"type\": \"message\"\r\n}"
+				},
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations/{{DLConvID}}/activities",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations",
+						"{{DLConvID}}",
+						"activities"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SendActivityBookFlight",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "7ad27ee8-9f6e-43d5-b8f9-0eac31b55dc2",
+						"exec": [
+							"const moment = require('moment');\r",
+							"pm.globals.set(\"UTCTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".547Z\");\r",
+							"pm.globals.set(\"LocalTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".547Z\");\r",
+							"console.log(\"timestamp: \", pm.globals.get(\"LocalTimestamp\"));\r",
+							"//\"2020-10-23T09:28:32.347Z\",\r",
+							"\r",
+							"const Bearer  = \"Bearer \" + pm.globals.get(\"DLToken\");\r",
+							"pm.request.headers.add({key: 'Authorization', value: Bearer })\r",
+							"console.log(\"Bearer: \" + Bearer);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "6f9ec6c4-6302-4964-afe1-0ab1b46e7bd7",
+						"exec": [
+							"console.log(pm.response.status);\r",
+							"pm.test(\"Successful Book Flight request\", function () {\r",
+							"        pm.expect(pm.response.code).to.be.oneOf([200, 202]);\r",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n   \"channelId\": \"{{ChannelID}}\",\r\n  \"conversation\": {\r\n    \"id\": \"{{DLConvID}}\"\r\n  },\r\n  \"entities\": [\r\n    {\r\n      \"requiresBotState\": true,\r\n      \"supportsListening\": true,\r\n      \"supportsTts\": true,\r\n      \"type\": \"ClientCapabilities\"\r\n    }\r\n  ],\r\n  \"from\": {\r\n    \"id\": \"{{UserID}}\",\r\n    \"name\": \"PostMan User\",\r\n    \"role\": \"user\"\r\n  },\r\n  \"id\": \"{{$guid}}\",\r\n  \"localTimestamp\": \"{{LocalTimestamp}}\",\r\n  \"locale\": \"en-US\",\r\n  \"recipient\": {\r\n    \"id\": \"{{BotID}}\",\r\n    \"name\": \"Bot\",\r\n    \"role\": \"bot\"\r\n  },\r\n  \"serviceUrl\": \"{{ServiceURL}}\",\r\n  \"text\": \"Book a flight from Paris to Berlin on October 30, 2020\",\r\n  \"textFormat\": \"plain\",\r\n  \"timestamp\": \"{{UTCTimestamp}}\",\r\n  \"type\": \"message\"\r\n}"
+				},
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations/{{DLConvID}}/activities",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations",
+						"{{DLConvID}}",
+						"activities"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SendActivityConfirmYes",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "d122f374-575f-4654-89ff-b7dc0a8c8cdf",
+						"exec": [
+							"const moment = require('moment');\r",
+							"pm.globals.set(\"UTCTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".547Z\");\r",
+							"pm.globals.set(\"LocalTimestamp\", moment().format(\"YYYY-MM-DD\") + \"T\" + moment().format(\"hh:mm:ss\") + \".547Z\");\r",
+							"console.log(\"timestamp: \", pm.globals.get(\"LocalTimestamp\"));\r",
+							"//\"2020-10-23T09:28:32.347Z\",\r",
+							"\r",
+							"const Bearer  = \"Bearer \" + pm.globals.get(\"DLToken\");\r",
+							"pm.request.headers.add({key: 'Authorization', value: Bearer })\r",
+							"console.log(\"Bearer: \" + Bearer);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "886c101b-4b6e-481b-b7a3-cdfd22fd73f2",
+						"exec": [
+							"console.log(pm.response.status);\r",
+							"pm.test(\"Successful Book Flight request\", function () {\r",
+							"        pm.expect(pm.response.code).to.be.oneOf([200, 202]);\r",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n   \"channelId\": \"{{ChannelID}}\",\r\n  \"conversation\": {\r\n    \"id\": \"{{DLConvID}}\"\r\n  },\r\n  \"entities\": [\r\n    {\r\n      \"requiresBotState\": true,\r\n      \"supportsListening\": true,\r\n      \"supportsTts\": true,\r\n      \"type\": \"ClientCapabilities\"\r\n    }\r\n  ],\r\n  \"from\": {\r\n    \"id\": \"{{UserID}}\",\r\n    \"name\": \"PostMan User\",\r\n    \"role\": \"user\"\r\n  },\r\n  \"id\": \"{{$guid}}\",\r\n  \"localTimestamp\": \"{{LocalTimestamp}}\",\r\n  \"locale\": \"en-US\",\r\n  \"recipient\": {\r\n    \"id\": \"{{BotID}}\",\r\n    \"name\": \"Bot\",\r\n    \"role\": \"bot\"\r\n  },\r\n  \"serviceUrl\": \"{{ServiceURL}}\",\r\n  \"text\": \"Yes\",\r\n  \"textFormat\": \"plain\",\r\n  \"timestamp\": \"{{UTCTimestamp}}\",\r\n  \"type\": \"message\"\r\n}"
+				},
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations/{{DLConvID}}/activities",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations",
+						"{{DLConvID}}",
+						"activities"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetActivities",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "3b158937-6984-4b02-a39a-d337c1a49ff5",
+						"exec": [
+							"const Bearer  = \"Bearer \" + pm.globals.get(\"DLToken\");\r",
+							"pm.request.headers.add({key: 'Authorization', value: Bearer })\r",
+							"console.log(\"Bearer: \" + Bearer);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://directline.botframework.com/v3/directline/conversations/{{DLConvID}}/activities?watermark=0000009",
+					"protocol": "https",
+					"host": [
+						"directline",
+						"botframework",
+						"com"
+					],
+					"path": [
+						"v3",
+						"directline",
+						"conversations",
+						"{{DLConvID}}",
+						"activities"
+					],
+					"query": [
+						{
+							"key": "watermark",
+							"value": "0000009"
+						}
+					]
+				},
+				"description": "Get directline requests"
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

@@ -1,0 +1,142 @@
+{
+	"id": "d47021d1-6192-4c53-b147-895d61c97206",
+	"name": "EchoBot",
+	"timestamp": "2021-07-27T13:17:31.357Z",
+	"collection_id": "28c24567-b7a9-4cdc-a8a6-20c122d75842",
+	"folder_id": 0,
+	"environment_id": "0",
+	"totalPass": 4,
+	"totalFail": 0,
+	"results": [
+		{
+			"id": "b60d09ff-79a3-4265-bc88-2dcd4de6657c",
+			"name": "CreateConversation",
+			"url": "https://directline.botframework.com/v3/directline/conversations",
+			"time": 355,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {
+				"Successful conversation Create": true
+			},
+			"testPassFailCounts": {
+				"Successful conversation Create": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				355
+			],
+			"allTests": [
+				{
+					"Successful conversation Create": true
+				}
+			]
+		},
+		{
+			"id": "a036cf49-81ac-4797-8e05-822094e006a9",
+			"name": "AddUserandBotToConversation",
+			"url": "https://directline.botframework.com/v3/directline/conversations/I1IZGtDug16Jz2jh9sUoVm-m/activities",
+			"time": 6740,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Successful Conversation Update": true
+			},
+			"testPassFailCounts": {
+				"Successful Conversation Update": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				6740
+			],
+			"allTests": [
+				{
+					"Successful Conversation Update": true
+				}
+			]
+		},
+		{
+			"id": "ad82e989-9b39-4d60-a18c-df15810974f8",
+			"name": "SendActivityHi",
+			"url": "https://directline.botframework.com/v3/directline/conversations/I1IZGtDug16Jz2jh9sUoVm-m/activities",
+			"time": 1425,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Successful Hi request": true
+			},
+			"testPassFailCounts": {
+				"Successful Hi request": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				1425
+			],
+			"allTests": [
+				{
+					"Successful Hi request": true
+				}
+			]
+		},
+		{
+			"id": "aa9a9dde-cd4d-46c3-9327-3ae626fb6436",
+			"name": "SendActivityHi ReverseUser",
+			"url": "https://directline.botframework.com/v3/directline/conversations/I1IZGtDug16Jz2jh9sUoVm-m/activities",
+			"time": 7046,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Successful Hi request": true
+			},
+			"testPassFailCounts": {
+				"Successful Hi request": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				7046
+			],
+			"allTests": [
+				{
+					"Successful Hi request": true
+				}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 15566,
+	"collection": {
+		"requests": [
+			{
+				"id": "b60d09ff-79a3-4265-bc88-2dcd4de6657c",
+				"method": "POST"
+			},
+			{
+				"id": "a036cf49-81ac-4797-8e05-822094e006a9",
+				"method": "POST"
+			},
+			{
+				"id": "ad82e989-9b39-4d60-a18c-df15810974f8",
+				"method": "POST"
+			},
+			{
+				"id": "aa9a9dde-cd4d-46c3-9327-3ae626fb6436",
+				"method": "POST"
+			}
+		]
+	}
+}
