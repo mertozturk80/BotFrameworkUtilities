@@ -1,5 +1,13 @@
 # ============================================================
-# Fixed parameters (NO suffix). Edit ONLY Subscripton name and Suffix for uniqueness.
+# Script configures Direct Line App Service Extension (DL ASE) for an Echo bot template
+# ============================================================
+# Summary: Provisions and configures an Echo Bot with Direct Line App Service Extension — logs in and sets the subscription; creates a resource group, VNet and subnets, App Service plan and Web App (WebSockets); registers an Entra app and secret; creates a Bot Service registration; enables and configures DL ASE (extension key/version) via app settings; builds and deploys the BotBuilder echo sample; writes test pages for DL ASE; best‑effort capture of the Direct Line secret; restarts the app.
+# Required parameters: `SubscriptionId`, `RG`, `Location`, `Suffix` (derives `PlanName`, `WebAppName`, `BotName`, `AppRegName`); optional `DLSecret` to let the test page request a Direct Line token.
+# ============================================================
+
+
+# ============================================================
+# Fixed parameters (NO suffix). Edit ONLY Subscription name and Suffix for uniqueness.
 # ============================================================
 $SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
 $RG             = "BotFrameworkASETest"

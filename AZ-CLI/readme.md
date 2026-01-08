@@ -1,104 +1,39 @@
 
-# 🚀 DL ASE with Echo Bot – Deployment & Network Isolation
+# BotFramework Utilities (AZ-CLI)
 
-This guide walks you through deploying an Azure App Service Environment (ASE) for Direct Line channel integration with an Echo Bot, and applying advanced network isolation using Azure networking features.
-
----
-
-## 📦 Script Contents
-
-**Following are the scripts included in this repository:**
-
-- **CreateDirectlineASEWithEchoBot.ps1**  
-  Contains PowerShell commands to configure and create all the resources required to set up Direct Line App Service Extension (DL ASE) on an Azure App Service.  
-  _Comments in the script are highly descriptive, guiding you through each step of the deployment process._
-
-- **DirectlineASEIsolationSteps.ps1**  
-  Contains PowerShell commands to perform network isolation for the DL ASE, building on top of the resources created by the previous script.  
-  _This script focuses on securing the environment using subnets, NSGs, private endpoints, and DNS zones._
+A concise catalog of PowerShell scripts for deploying and configuring an Bots on Azure, including Direct Line App Service Extension (DL ASE) setup and network isolation.
 
 ---
 
-## 🛠️ 1. Resource Provisioning
+## Script Index
 
-- **Resource Group & VNet**
-  - Creates a dedicated resource group and virtual network with subnets for apps and VMs.
-- **App Service Plan & Web App**
-  - Deploys a Windows App Service Plan and a Web App (Echo Bot) with WebSockets enabled.
-- **Azure Bot Registration**
-  - Registers an Azure Bot, configures authentication (App Registration, Service Principal, Secret), and sets up the Direct Line channel with a 1-week expiring credential for enhanced security.
-- **Echo Bot Deployment**
-  - Clones the BotBuilder samples, modifies the Echo Bot sample for required integrations (WebSockets, Named Pipes), and deploys it to the Web App using ZIP deployment.
+| Script | Purpose |
+|---|---|
+| `DeployBBEchoBotTemplateToNewRG.ps1` | Provisions an Echo Bot on Azure — logs in and sets the subscription, creates a resource group, App Service plan and Web App (WebSockets), registers an Entra app and secret, configures app settings, creates a Bot Service registration, builds and deploys the BotBuilder echo sample, and writes a test index.html for classic Direct Line. |
+| `DeployBBEchoBotDirectlineASEToNewRG.ps1` | Provisions and configures an Echo Bot with Direct Line App Service Extension — sets subscription and resource group, creates VNet/subnets, App Service plan and Web App (WebSockets), registers Entra app and secret, creates Bot registration, enables and configures DL ASE (extension key/version) via app settings, builds and deploys the Echo sample, writes DL ASE test pages, attempts best‑effort DL secret capture, and restarts the app. |
+| `PerformDirectlineASEIsolationSteps.ps1` | Applies DL ASE isolation steps for an already created bot — adds integration and private endpoint subnets, configures NSGs (allow Bot Service/AAD, deny defaults), integrates Web App with VNet (route all outbound), creates private DNS zones and links, provisions Private Endpoints for sites and SCM, and disables public network access. |
 
 ---
 
-## ⚡ 2. Direct Line Extension & Configuration
+## Notes
 
-- **Direct Line Extension**
-  - Enables the Direct Line App Service Extension, configures required app settings, and restarts the Web App.
-- **Web Chat Clients**
-  - Adds both a simple HTML and a React-based Web Chat client to the bot’s wwwroot for testing.
-
----
-
-## 🔒 3. Network Isolation Steps
-
-- **Extra Subnets**
-  - Adds integration and private endpoint subnets to the VNet, with appropriate address spaces.
-- **Network Security Groups (NSGs)**
-  - Creates and associates NSGs to subnets, defining outbound/inbound rules to:
-    - Allow only necessary traffic (e.g., HTTPS to Bot Service and AAD).
-    - Deny all other traffic by default for strict isolation.
-- **VNet Integration**
-  - Integrates the Web App with the VNet for outbound traffic, ensuring all flows are subject to NSG rules.
-- **Private DNS Zones**
-  - Sets up private DNS zones for both the main site and SCM (Kudu), linking them to the VNet.
-- **Private Endpoints**
-  - Creates private endpoints for the Web App (sites and SCM), attaches DNS zone groups, and disables public network access to enforce private-only connectivity.
+- All purposes above are sourced from each script’s summary section for accuracy.
+- Handle secrets (e.g., `AppSecret`, `DLSecret`) securely; do not commit or expose in client code.
+- Some operations (e.g., Direct Line secret retrieval) may require portal actions or Key Vault storage depending on policy.
 
 ---
 
-## 🧪 4. Testing & Validation
+## Quick Start
 
-- **Windows VM**
-  - Deploys a Windows VM in the VNet (no public IP) to test bot connectivity and validate isolation.
-- **Health Checks**
-  - Runs PowerShell scripts from the VM to verify the health of the DL ASE deployment.
+- Open PowerShell (`pwsh`) and run the desired script after updating parameters near the top of the file.
+- Ensure `WebAppName` is globally unique and Azure CLI is logged in.
 
----
-
-## 📋 5. Variable Dump & Documentation
-
-- **Echo Variables**
-  - At the end, all key variables (including secrets, resource IDs, endpoints, etc.) are echoed for documentation and troubleshooting.
+```powershell
+# Example
+az login
+pwsh ./AZ-CLI/DeployBBEchoBotTemplateToNewRG.ps1
+```
 
 ---
 
-## 💡 How to Use
-
-1. **Edit Parameters**  
-   Only the `WebAppName` typically needs to be globally unique; other parameters are pre-set.
-2. **Run Scripts Sequentially**  
-   Start with the main deployment script, then apply the isolation steps.
-3. **Test**  
-   Use the deployed VM or the provided web clients to validate the bot and network isolation.
-
----
-
-## 🔐 Security Notes
-
-- **Secrets**  
-  App secrets and Direct Line keys are generated and echoed for convenience but should be handled securely in production.
-- **Isolation**  
-  Public network access is disabled; only private endpoints and VNet-integrated resources can access the bot.
-
----
-
-## 📚 References
-
-- Azure CLI documentation for each resource type.
-- Microsoft Learn articles on App Service VNet integration, Private Endpoints, and Bot Service Direct Line Extension.
-
----
-
-**This README summarizes the automation and isolation of a secure, enterprise-grade bot deployment in Azure using PowerShell.**
+© BotFrameworkUtilities
