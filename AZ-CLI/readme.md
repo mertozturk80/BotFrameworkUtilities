@@ -12,7 +12,13 @@ Agents SDK based deploying scripts:
 | Script | Purpose | Resources |
 |---|---|---|
 | `DeployAgentsBotTemplateToNewRG.ps1` | Provisions a .NET Agents SDK bot on Azure App Service (Windows) — logs in and sets the subscription, creates a resource group, Windows App Service plan and Web App (WebSockets, .NET runtime), registers an Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the quickstart sample, creates appsettings.json with Agents SDK authentication (MSAL), and deploys via ZIP to App Service. | <img width="559" height="253" alt="image" src="https://github.com/user-attachments/assets/d2a8db4f-69d3-4a30-96e7-5a9ea0e0127f" />|
-| `DeploySemanticKernelMultiturnToNewRG.ps1` | Provisions a .NET Agents SDK bot with Semantic Kernel and Azure OpenAI on Azure App Service (Windows) — logs in and sets subscription, creates resource group, creates Azure OpenAI resource with custom subdomain and deploys GPT model, creates App Service plan and Web App (WebSockets enabled), enables system-assigned managed identity on App Service, grants Cognitive Services OpenAI User role to the managed identity, registers Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the semantic-kernel-multiturn sample, modifies Program.cs to use DefaultAzureCredential for token-based authentication, creates appsettings.json with Agents SDK authentication and Azure OpenAI endpoint (no API key), and deploys via ZIP to App Service. | <img width="640" height="400" alt="semantic-kernel-architecture" src="https://github.com/user-attachments/assets/semantic-kernel-bot-architecture.png" />|
+| `DeploySemanticKernelMultiturnToNewRG.ps1` | Provisions a .NET Agents SDK bot with Semantic Kernel and Azure OpenAI on Azure App Service (Windows) — logs in and sets subscription, creates resource group, creates Azure OpenAI resource with custom subdomain and deploys GPT model, creates App Service plan and Web App (WebSockets enabled), enables system-assigned managed identity on App Service, grants Cognitive Services OpenAI User role to the managed identity, registers Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the semantic-kernel-multiturn sample, modifies Program.cs to use DefaultAzureCredential for token-based authentication, creates appsettings.json with Agents SDK authentication and Azure OpenAI endpoint (no API key), and deploys via ZIP to App Service. | <img width="324" height="169" alt="image" src="https://github.com/user-attachments/assets/8db95b9b-2ba5-46ea-92ad-c33d1a478c23" />
+|
+
+Here is the result of `DeploySemanticKernelMultiturnToNewRG.ps1`: 
+
+![SemanticKernelBotResponds](https://github.com/user-attachments/assets/6a27b3af-94bb-42e4-9e02-769d30819d42)
+
 
 Bot Builder SDK based deploying scripts:
 
