@@ -1,16 +1,15 @@
-
 # ============================================================
-# Script: Creates a Bot Channel Registration + Python Agents SDK bot on Azure App Service (Linux)
+# Script: Creates a Bot Channel Registration + .NET Agents SDK bot on Azure App Service (Windows)
 # ============================================================
 
 # Summary:
 # - Logs in and sets the subscription
-# - Creates Resource Group, Linux App Service plan and Web App (WebSockets, Python runtime)
+# - Creates Resource Group, Windows App Service plan and Web App (WebSockets, .NET runtime)
 # - Registers Entra app + secret (1-week expiry)
 # - Sets app settings for Bot Service auth
 # - Creates Azure Bot (channel registration)
 # - (Best-effort) captures Direct Line secret
-# - Clones a Python Agents SDK quickstart bot sample, zips, and deploys to App Service
+# - Clones a .NET Agents SDK quickstart bot sample, builds, and deploys to App Service
 #
 # Required parameters: SubscriptionId, RG, Location, Suffix (derives PlanName, WebAppName, BotName, AppRegName)
 # Optional: DLSecret (if captured), used only by the test page (do not use in production)
@@ -18,15 +17,15 @@
 # ============================================================
 # 0) Fixed parameters. Edit ONLY subscription and suffix for uniqueness.
 # ============================================================
-$SubscriptionId = "xxxxxx-xxxxx-xxxx-xxxx-xxxxxxx"
+$SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
 
 $RG             = "BotResourceGroup"
 $Location       = "westeurope"
 $Suffix         = "124"
 
-$PlanName       = "dlaseecho-linux-plan" + $Suffix
-$WebAppName     = "dlaseagentspyapp" + $Suffix     # MUST be globally unique; change if taken
-$Runtime        = "PYTHON:3.11"
+$PlanName       = "dlaseecho-win-plan" + $Suffix
+$WebAppName     = "dlaseagentsnetapp" + $Suffix     # MUST be globally unique; change if taken
+$DotNetVersion  = "v8.0"                          # .NET 8.0
 
 $BotName        = "dlaseagents-bot" + $Suffix
 $AppRegName     = "dlaseagents-aad" + $Suffix
@@ -43,20 +42,18 @@ az account set --subscription $SubscriptionId
 az group create --name $RG --location $Location
 
 # ============================================================
-# 3) Create Linux App Service Plan + WebApp + WebSockets
+# 3) Create Windows App Service Plan + WebApp + WebSockets
 # ============================================================
 az appservice plan create `
   --resource-group $RG `
   --name $PlanName `
   --location $Location `
-  --sku S1 `
-  --is-linux
+  --sku S1
 
 az webapp create `
   --resource-group $RG `
   --name $WebAppName `
-  --plan $PlanName `
-  --runtime $Runtime
+  --plan $PlanName
 
 # Enable WebSockets (useful for Bot Service and Web Chat)
 az webapp config set `
@@ -95,29 +92,27 @@ Write-Host "TenantId:    $TenantId"
 Write-Host "AppSecret:   $AppSecret"
 
 # ============================================================
-# 5) Set Web App settings (Bot auth + Python build runtime hints), restart
+# 5) Set Web App settings (logging and diagnostics only)
 # ============================================================
-# NOTE: For Linux/Python built-in images, Oryx builds automatically when SCM_DO_BUILD_DURING_DEPLOYMENT=true
-# For FastAPI/Flask, we typically bind to port 8000; you can adjust if your sample uses a different port
+# NOTE: For Agents SDK, authentication is configured via appsettings.json (Connections section)
+# NOT via Azure App Settings. Do not set MicrosoftAppId/Password here.
 az webapp config appsettings set `
   --resource-group $RG `
   --name $WebAppName `
   --settings `
-  "MicrosoftAppType=SingleTenant" `
-  "MicrosoftAppId=$AppId" `
-  "MicrosoftAppPassword=$AppSecret" `
-  "MicrosoftAppTenantId=$TenantId" `
-  "SCM_DO_BUILD_DURING_DEPLOYMENT=true" `
-  "ENABLE_ORYX_BUILD=true" `
-  "WEBSITES_PORT=8000"
+  "ASPNETCORE_ENVIRONMENT=Production" `
+  "ASPNETCORE_DETAILEDERRORS=true" `
+  "Logging__LogLevel__Default=Information" `
+  "Logging__LogLevel__Microsoft.AspNetCore=Warning"
 
-# Recommended: set a startup command suitable for your framework.
-# - FastAPI (Uvicorn):  python -m uvicorn app:app --host 0.0.0.0 --port 8000
-# - Flask (Gunicorn):   gunicorn --bind=0.0.0.0:8000 app:app
-az webapp config set `
+# Enable detailed error messages and logging
+az webapp log config `
   --resource-group $RG `
   --name $WebAppName `
-  --startup-file "python -m uvicorn app:app --host 0.0.0.0 --port 8000"
+  --application-logging filesystem `
+  --detailed-error-messages true `
+  --failed-request-tracing true `
+  --web-server-logging filesystem
 
 az webapp restart --resource-group $RG --name $WebAppName
 
@@ -175,8 +170,8 @@ if ($DLSecret) {
 
 
 # ============================================================
-# 7) Build + deploy Python Agents quickstart (Agents repo; agent.py in /src)
-#    Repo: https://github.com/microsoft/Agents/tree/main/samples/python/quickstart
+# 7) Build + deploy .NET Agents quickstart (Agents repo)
+#    Repo: https://github.com/microsoft/Agents/tree/main/samples/dotnet/quickstart
 # ============================================================
 
 $ORIGINAL_WD = (Get-Location).Path
@@ -187,80 +182,172 @@ $RepoFolder = "Agents"
 $LocalRepo  = Join-Path $ORIGINAL_WD $RepoFolder
 
 Set-Location $ORIGINAL_WD
-git clone $RepoUrl
-Set-Location $LocalRepo
+if (Test-Path $LocalRepo) {
+  Write-Host "Repository folder exists, pulling latest changes..."
+  Set-Location $LocalRepo
+  git pull
+} else {
+  Write-Host "Cloning repository..."
+  git clone $RepoUrl
+  Set-Location $LocalRepo
+}
 
 # --- Quickstart paths ---
-$BotPath = Join-Path $LocalRepo "samples/python/quickstart"
+$BotPath = Join-Path $LocalRepo "samples\dotnet\quickstart"
 if (-not (Test-Path $BotPath)) { throw "Quickstart not found: $BotPath" }
 
-$SrcDir   = Join-Path $BotPath "src"
-$AgentPy  = Join-Path $SrcDir "agent.py"
-if (-not (Test-Path $AgentPy)) { throw "agent.py not found at: $AgentPy" }
-
 Write-Host "BotPath: $BotPath"
-Write-Host "SrcDir : $SrcDir"
 
-# --- Detect framework to choose server/command ---
-$agentCode  = Get-Content $AgentPy -Raw
-$useFastAPI = $agentCode -match '\b(from|import)\s+fastapi\b'
-$useAiohttp = $agentCode -match '\b(from|import)\s+aiohttp\b'
+# --- Find .csproj file ---
+$CsProjFiles = Get-ChildItem -Path $BotPath -Filter "*.csproj" -Recurse
+if ($CsProjFiles.Count -eq 0) { throw "No .csproj file found in: $BotPath" }
 
-# --- requirements: prefer repo's file; write minimal fallback if missing ---
-$ReqPath = Join-Path $BotPath "requirements.txt"
-if (-not (Test-Path $ReqPath)) {
-  $req = @("python-dotenv>=1.0","pydantic>=2.0")
-  if ($useFastAPI -or -not $useAiohttp) {
-    # default to FastAPI if uncertain
-    $req += @("fastapi==0.115.0","uvicorn==0.30.0")
-  } else {
-    $req += @("aiohttp==3.9.5","gunicorn==23.0.0")
-  }
-  $req -join "`n" | Set-Content -Path $ReqPath -Encoding utf8
-  Write-Host "Wrote fallback requirements.txt -> $ReqPath"
-} else {
-  Write-Host "Using repository requirements.txt -> $ReqPath"
+$CsProjFile = $CsProjFiles[0].FullName
+Write-Host "Found project file: $CsProjFile"
+
+# --- Create appsettings.json with bot credentials (Agents SDK format) ---
+$ProjectDir = Split-Path $CsProjFile -Parent
+$AppSettingsPath = Join-Path $ProjectDir "appsettings.json"
+
+# Backup existing appsettings.json if it exists
+if (Test-Path $AppSettingsPath) {
+  $BackupPath = Join-Path $ProjectDir "appsettings.json.bak"
+  Copy-Item $AppSettingsPath $BackupPath -Force
+  Write-Host "Backed up existing appsettings.json"
 }
 
-# --- App Service build/runtime hints for Oryx ---
-az webapp config appsettings set `
-  --resource-group $RG `
-  --name $WebAppName `
-  --settings `
-    SCM_DO_BUILD_DURING_DEPLOYMENT=true `
-    ENABLE_ORYX_BUILD=true `
-    WEBSITES_PORT=8000 `
-    PYTHONUNBUFFERED=1 | Out-Null
+$appSettingsContent = @"
+{
+  "TokenValidation": {
+    "Enabled": true,
+    "Audiences": [
+      "$AppId"
+    ],
+    "TenantId": "$TenantId"
+  },
+  "AgentApplication": {
+    "StartTypingTimer": false,
+    "RemoveRecipientMention": false,
+    "NormalizeMentions": false
+  },
+  "Connections": {
+    "ServiceConnection": {
+      "Settings": {
+        "AuthType": "ClientSecret",
+        "ClientId": "$AppId",
+        "ClientSecret": "$AppSecret",
+        "TenantId": "$TenantId",
+        "Scopes": [
+          "https://api.botframework.com/.default"
+        ],
+        "MicrosoftAppType": "SingleTenant"
+      }
+    }
+  },
+  "ConnectionsMap": [
+    {
+      "ServiceUrl": "*",
+      "Connection": "ServiceConnection"
+    }
+  ],
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+"@
 
-# --- Startup command (ensure Python can import from ./src) ---
-if ($useAiohttp) {
-  # AIOHTTP via Gunicorn; chdir into src so 'agent:app' resolves
-  $Startup = "gunicorn --worker-class aiohttp.worker.GunicornWebWorker -b 0.0.0.0:8000 agent:app --chdir src"
+$appSettingsContent | Set-Content -Path $AppSettingsPath -Encoding utf8
+Write-Host "Created appsettings.json at: $AppSettingsPath"
+Write-Host ""
+Write-Host "Verifying appsettings.json content:"
+Write-Host "  - TokenValidation.Enabled: false"
+Write-Host "  - TokenValidation.Audiences[0]: $AppId"
+Write-Host "  - TokenValidation.TenantId: $TenantId"
+Write-Host "  - Connections.ServiceConnection.Settings.MicrosoftAppId: $AppId"
+Write-Host ""
+Write-Host "Full appsettings.json content:"
+Get-Content $AppSettingsPath | ForEach-Object { Write-Host "  $_" }
+Write-Host ""
+
+# --- Build and publish .NET project ---
+Write-Host "Building .NET project..."
+Set-Location $ProjectDir
+
+# Restore NuGet packages
+Write-Host "Running dotnet restore..."
+dotnet restore
+if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
+
+# Build the project
+Write-Host "Running dotnet build..."
+dotnet build --configuration Release
+if ($LASTEXITCODE -ne 0) { throw "dotnet build failed" }
+
+# Publish to a folder
+$PublishPath = Join-Path $ORIGINAL_WD "publish"
+if (Test-Path $PublishPath) { Remove-Item $PublishPath -Recurse -Force }
+
+Write-Host "Publishing to: $PublishPath"
+dotnet publish --configuration Release --output $PublishPath
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+
+# Ensure appsettings.json is in the publish folder
+$PublishedAppSettings = Join-Path $PublishPath "appsettings.json"
+if (-not (Test-Path $PublishedAppSettings)) {
+  Write-Host "WARNING: appsettings.json not found in publish output, copying manually..."
+  Copy-Item $AppSettingsPath $PublishedAppSettings -Force
 } else {
-  # FastAPI via Uvicorn; add src to module search path with --app-dir
-  $Startup = "python -m uvicorn --app-dir src agent:app --host 0.0.0.0 --port 8000"
+  Write-Host "✓ appsettings.json found in publish output"
+  # Overwrite with our configured version to be sure
+  Copy-Item $AppSettingsPath $PublishedAppSettings -Force
+  Write-Host "✓ Ensured appsettings.json has correct credentials"
 }
 
-az webapp config set `
-  --resource-group $RG `
-  --name $WebAppName `
-  --startup-file "$Startup" | Out-Null
+# List published files for verification
+Write-Host ""
+Write-Host "Published files:"
+Get-ChildItem $PublishPath -File | Select-Object -First 10 | ForEach-Object { Write-Host "  - $($_.Name)" }
+if ((Get-ChildItem $PublishPath -File).Count -gt 10) {
+  Write-Host "  ... and $((Get-ChildItem $PublishPath -File).Count - 10) more files"
+}
+Write-Host ""
 
-Write-Host "Startup command set -> $Startup"
+Write-Host "✅ Build and publish completed successfully"
 
-# --- ZIP deploy (triggers remote Oryx build) ---
-Set-Location $BotPath
+# --- ZIP deploy .NET application to Windows App Service ---
+Set-Location $PublishPath
 $ZipPath = Join-Path $ORIGINAL_WD "bot.zip"
 if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
-Compress-Archive -Path (Join-Path $BotPath "*") -DestinationPath $ZipPath
+
+Write-Host "Creating deployment package from published output..."
+Compress-Archive -Path (Join-Path $PublishPath "*") -DestinationPath $ZipPath -Force
 $ZipPath = (Resolve-Path $ZipPath).Path
 Set-Location $ORIGINAL_WD
 
-az webapp deploy --resource-group $RG --name $WebAppName --src-path $ZipPath --type zip | Out-Null
-az webapp restart --resource-group $RG --name $WebAppName | Out-Null
+Write-Host "Deploying .NET application to Windows App Service..."
+az webapp deploy --resource-group $RG --name $WebAppName --src-path $ZipPath --type zip
 
-Write-Host "✅ Deployment complete. Check Log Stream for Oryx build + startup."
+Write-Host "Restarting web app..."
+az webapp restart --resource-group $RG --name $WebAppName
 
+Write-Host ""
+Write-Host "✅ Deployment complete!"
+Write-Host "📋 Next steps:"
+Write-Host "   1. Wait 30-60 seconds for app to start"
+Write-Host "   2. Check logs: az webapp log tail --resource-group $RG --name $WebAppName"
+Write-Host "   3. View Log Stream in Azure Portal: https://portal.azure.com"
+Write-Host "   4. Test endpoint: $BotEndpoint"
+Write-Host "   5. If HTTP 500 persists, check Application Insights or enable remote debugging"
+Write-Host ""
+Write-Host "⚠️  Known Issues:"
+Write-Host "   - If you see authentication errors, the quickstart sample might need additional configuration"
+Write-Host "   - Check that the repository sample at: https://github.com/microsoft/Agents/tree/main/samples/dotnet/quickstart"
+Write-Host "   - is a complete, runnable sample with proper Agents SDK setup"
+Write-Host ""
 
 
 # ============================================================
@@ -286,7 +373,7 @@ $pairs += Build-AssignPair 'Location' $Location
 $pairs += Build-AssignPair 'Suffix' $Suffix
 $pairs += Build-AssignPair 'PlanName' $PlanName
 $pairs += Build-AssignPair 'WebAppName' $WebAppName
-$pairs += Build-AssignPair 'Runtime' $Runtime
+$pairs += Build-AssignPair 'DotNetVersion' $DotNetVersion
 $pairs += Build-AssignPair 'BotName' $BotName
 $pairs += Build-AssignPair 'AppRegName' $AppRegName
 
@@ -300,10 +387,11 @@ $pairs += Build-AssignPair 'AppSecret' $AppSecret   # Sensitive
 
 $pairs += Build-AssignPair 'BotResourceId' $BotResourceId
 
-$pairs += Build-AssignPair 'AgentRepoUrl' $AgentRepoUrl
-$pairs += Build-AssignPair 'AgentSampleRelPath' $AgentSampleRelPath
+$pairs += Build-AssignPair 'RepoUrl' $RepoUrl
+$pairs += Build-AssignPair 'LocalRepo' $LocalRepo
 $pairs += Build-AssignPair 'BotPath' $BotPath
-$pairs += Build-AssignPair 'IndexDir' $IndexDir
+$pairs += Build-AssignPair 'CsProjFile' $CsProjFile
+$pairs += Build-AssignPair 'PublishPath' $PublishPath
 $pairs += Build-AssignPair 'ZipPath' $ZipPath
 $pairs += Build-AssignPair 'ORIGINAL_WD' $ORIGINAL_WD
 
