@@ -12,14 +12,17 @@ Agents SDK based deploying scripts:
 | Script | Purpose | Resources |
 |---|---|---|
 | `DeployAgentsBotTemplateToNewRG.ps1` | Provisions a .NET Agents SDK bot on Azure App Service (Windows) — logs in and sets the subscription, creates a resource group, Windows App Service plan and Web App (WebSockets, .NET runtime), registers an Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the quickstart sample, creates appsettings.json with Agents SDK authentication (MSAL), and deploys via ZIP to App Service. | <img width="559" height="253" alt="image" src="https://github.com/user-attachments/assets/d2a8db4f-69d3-4a30-96e7-5a9ea0e0127f" />|
+| `DeploySemanticKernelMultiturnToNewRG.ps1` | Provisions a .NET Agents SDK bot with Semantic Kernel and Azure OpenAI on Azure App Service (Windows) — logs in and sets subscription, creates resource group, creates Azure OpenAI resource with custom subdomain and deploys GPT model, creates App Service plan and Web App (WebSockets enabled), enables system-assigned managed identity on App Service, grants Cognitive Services OpenAI User role to the managed identity, registers Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the semantic-kernel-multiturn sample, modifies Program.cs to use DefaultAzureCredential for token-based authentication, creates appsettings.json with Agents SDK authentication and Azure OpenAI endpoint (no API key), and deploys via ZIP to App Service. | <img width="640" height="400" alt="semantic-kernel-architecture" src="https://github.com/user-attachments/assets/semantic-kernel-bot-architecture.png" />|
 
-#Bot Builder SDK based deploying scripts:
+Bot Builder SDK based deploying scripts:
 
 | Script | Purpose | Resources |
 |---|---|---|
-| `DeployBBEchoBotTemplateToNewRG.ps1` | Provisions an Echo Bot on Azure — logs in and sets the subscription, creates a resource group, App Service plan and Web App (WebSockets), registers an Entra app and secret, configures app settings, creates a Bot Service registration, builds and deploys the BotBuilder echo sample, and writes a test index.html for classic Direct Line. |<img width="499" height="144" alt="image" src="https://github.com/user-attachments/assets/42d04b7d-00c8-4028-9c0e-df6dbd3ca3da"/>|
+| `DeployBBEchoBotTemplateToNewRG.ps1` | Provisions an Bot Builder Echo Bot on Azure — logs in and sets the subscription, creates a resource group, App Service plan and Web App (WebSockets), registers an Entra app and secret, configures app settings, creates a Bot Service registration, builds and deploys the BotBuilder echo sample, and writes a test index.html for classic Direct Line. |<img width="499" height="144" alt="image" src="https://github.com/user-attachments/assets/42d04b7d-00c8-4028-9c0e-df6dbd3ca3da"/>|
 | `DeployBBEchoBotDirectlineASEToNewRG.ps1` | Provisions and configures an Echo Bot with Direct Line App Service Extension — sets subscription and resource group, creates VNet/subnets, App Service plan and Web App (WebSockets), registers Entra app and secret, creates Bot registration, enables and configures DL ASE (extension key/version) via app settings, builds and deploys the Echo sample, writes DL ASE test pages, attempts best‑effort DL secret capture, and restarts the app. | <img width="516" height="335" alt="image" src="https://github.com/user-attachments/assets/226855d7-f154-42d1-94fd-89487d238272" />|
-| `PerformDirectlineASEIsolationSteps.ps1` | Applies DL ASE isolation steps for an already created bot — adds integration and private endpoint subnets, configures NSGs (allow Bot Service/AAD, deny defaults), integrates Web App with VNet (route all outbound), creates private DNS zones and links, provisions Private Endpoints for sites and SCM, and disables public network access. | <img width="523" height="329" alt="image" src="https://github.com/user-attachments/assets/9e47e75f-86cb-4ab8-9dbd-a421415b6391" />|
+| `PerformDirectlineASEIsolationSteps.ps1` | Complementary script to DeployBBEchoBotDirectlineASEToNewRG.ps1, as it applies DL ASE isolation steps for an already created bot — adds integration and private endpoint subnets, configures NSGs (allow Bot Service/AAD, deny defaults), integrates Web App with VNet (route all outbound), creates private DNS zones and links, provisions Private Endpoints for sites and SCM, and disables public network access. | <img width="523" height="329" alt="image" src="https://github.com/user-attachments/assets/9e47e75f-86cb-4ab8-9dbd-a421415b6391" />|
+
+After each script is finished, it will flush the replay variables, which include all the variables required for powershell for next sessions.
 
 > **⚠️ DEPRECATION NOTICE**: The Bot Builder SDK scripts above are provided for legacy support only. The Bot Builder SDK has been deprecated by Microsoft. **New projects should use the Agents SDK** (see `DeployAgentsBotTemplateToNewRG.ps1` above), which offers modern authentication patterns, improved security, and active support. For migration guidance, see the [Microsoft Agents SDK documentation](https://github.com/microsoft/Agents).
 
@@ -39,8 +42,7 @@ Agents SDK based deploying scripts:
 
 ```powershell
 # Example
-az login
-pwsh ./AZ-CLI/DeployBBEchoBotTemplateToNewRG.ps1
+pwsh ./AZ-CLI/DeployAgentsBotTemplateToNewRG.ps1
 ```
 
 ---
