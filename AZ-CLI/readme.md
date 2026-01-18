@@ -7,13 +7,21 @@ A concise catalog of PowerShell scripts for deploying and configuring an Bots on
 
 ## Script Index
 
+Agents SDK based deploying scripts:
+
 | Script | Purpose | Resources |
 |---|---|---|
 | `DeployAgentsBotTemplateToNewRG.ps1` | Provisions a .NET Agents SDK bot on Azure App Service (Windows) — logs in and sets the subscription, creates a resource group, Windows App Service plan and Web App (WebSockets, .NET runtime), registers an Entra app and secret, configures Azure Bot registration, clones the microsoft/Agents repository, builds the quickstart sample, creates appsettings.json with Agents SDK authentication (MSAL), and deploys via ZIP to App Service. | <img width="559" height="253" alt="image" src="https://github.com/user-attachments/assets/d2a8db4f-69d3-4a30-96e7-5a9ea0e0127f" />|
+
+#Bot Builder SDK based deploying scripts:
+
+| Script | Purpose | Resources |
+|---|---|---|
 | `DeployBBEchoBotTemplateToNewRG.ps1` | Provisions an Echo Bot on Azure — logs in and sets the subscription, creates a resource group, App Service plan and Web App (WebSockets), registers an Entra app and secret, configures app settings, creates a Bot Service registration, builds and deploys the BotBuilder echo sample, and writes a test index.html for classic Direct Line. |<img width="499" height="144" alt="image" src="https://github.com/user-attachments/assets/42d04b7d-00c8-4028-9c0e-df6dbd3ca3da"/>|
 | `DeployBBEchoBotDirectlineASEToNewRG.ps1` | Provisions and configures an Echo Bot with Direct Line App Service Extension — sets subscription and resource group, creates VNet/subnets, App Service plan and Web App (WebSockets), registers Entra app and secret, creates Bot registration, enables and configures DL ASE (extension key/version) via app settings, builds and deploys the Echo sample, writes DL ASE test pages, attempts best‑effort DL secret capture, and restarts the app. | <img width="516" height="335" alt="image" src="https://github.com/user-attachments/assets/226855d7-f154-42d1-94fd-89487d238272" />|
 | `PerformDirectlineASEIsolationSteps.ps1` | Applies DL ASE isolation steps for an already created bot — adds integration and private endpoint subnets, configures NSGs (allow Bot Service/AAD, deny defaults), integrates Web App with VNet (route all outbound), creates private DNS zones and links, provisions Private Endpoints for sites and SCM, and disables public network access. | <img width="523" height="329" alt="image" src="https://github.com/user-attachments/assets/9e47e75f-86cb-4ab8-9dbd-a421415b6391" />|
 
+> **⚠️ DEPRECATION NOTICE**: The Bot Builder SDK scripts above are provided for legacy support only. The Bot Builder SDK has been deprecated by Microsoft. **New projects should use the Agents SDK** (see `DeployAgentsBotTemplateToNewRG.ps1` above), which offers modern authentication patterns, improved security, and active support. For migration guidance, see the [Microsoft Agents SDK documentation](https://github.com/microsoft/Agents).
 
 ---
 
