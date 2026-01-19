@@ -3,6 +3,9 @@
 
 A concise catalog of PowerShell scripts for deploying and configuring an Bots on Azure, including Direct Line App Service Extension (DL ASE) setup and network isolation.
 
+![ExecutinScript](https://github.com/user-attachments/assets/a39a7017-0adb-42f8-91c4-4f344788903d)
+
+
 ---
 
 ## Script Index
