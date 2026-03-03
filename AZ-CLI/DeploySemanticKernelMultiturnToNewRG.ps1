@@ -21,9 +21,9 @@
 # ============================================================
 $SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
 
-$RG             = "BotSKResourceGroup3"
+$RG             = "BotSKResourceGroup33"
 $Location       = "westeurope"
-$Suffix         = "121"
+$Suffix         = "127"
 
 $PlanName       = "dlasesk-win-plan" + $Suffix
 $WebAppName     = "dlaseskagentsnetapp" + $Suffix     # MUST be globally unique; change if taken

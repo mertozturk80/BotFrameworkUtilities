@@ -1,17 +1,15 @@
 # ============================================================
 # Script Creates a bot channel registration only
 # ============================================================
-
-
 # Summary: Provisions an Echo Bot on Azure — logs in and sets the subscription, creates a resource group, App Service plan and Web App (WebSockets), registers an Entra app and secret, configures app settings, creates a Bot Service registration, builds and deploys the BotBuilder echo sample, and writes a test index.html for classic Direct Line.
 # Required parameters: `SubscriptionId`, `RG`, `Location`, `Suffix` (derives `PlanName`, `WebAppName`, `BotName`, `AppRegName`); optional `DLSecret` to let the test page request a Direct Line token.
+# ============================================================
 
 
 # ============================================================
 # Fixed parameters. Edit ONLY Subscripton name and Suffix for uniqueness.
 # ============================================================
 $SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
-
 $RG             = "BotResourceGroup"
 $Location       = "westeurope"
 $Suffix = "124"
