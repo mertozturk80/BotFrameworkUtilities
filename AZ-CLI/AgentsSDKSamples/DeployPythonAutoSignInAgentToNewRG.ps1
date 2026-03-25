@@ -278,7 +278,8 @@ az bot authsetting create `
   --provider-scope-string "user repo"
 
 # ============================================================
-# 6c) Enable enhanced authentication on Direct Line channel
+# 6c) OPTIONAL - 
+#     Enable enhanced authentication on Direct Line channel
 #     Required for OAuth sign-in to work in "Test in Web Chat"
 #     Without this, the token exchange / magic code flow fails
 #     and the sign-in popup shows an empty page.
