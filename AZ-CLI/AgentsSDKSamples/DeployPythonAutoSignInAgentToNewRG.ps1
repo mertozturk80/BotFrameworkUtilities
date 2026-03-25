@@ -20,7 +20,7 @@
 # ============================================================
 # 0) Fixed parameters. Edit ONLY subscription, suffix, and OAuth connection names.
 # ============================================================
-$SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
+$SubscriptionId = "YOUR_SUBSCRIPTION_ID"
 
 $RG             = "BotResourceGroup"
 $Location       = "westeurope"
@@ -33,6 +33,14 @@ $PythonVersion  = "3.11"                               # Python 3.11
 $BotName        = "pyautosignin-bot" + $Suffix
 $AppRegName     = "pyautosignin-aad" + $Suffix
 $OAuthAppRegName = "pyautosignin-oauth-aad" + $Suffix   # Separate app reg for OAuth connections
+
+# Regional Direct Line endpoint — use the region closest to your bot.
+# Available regions: https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-direct-line-3-0-api-reference
+#   Global (default):  https://directline.botframework.com
+#   Europe:            https://europe.directline.botframework.com
+#   India:             https://india.directline.botframework.com
+#   Japan:             https://japaneast.directline.botframework.com
+$DirectLineEndpoint = "https://europe.directline.botframework.com"
 
 # OAuth connection names – these will be registered on the Azure Bot
 # and referenced by the Python agent's env vars.
@@ -125,11 +133,11 @@ az webapp config appsettings set `
   "AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__GITHUB__SETTINGS__AZUREBOTOAUTHCONNECTIONNAME=$GitHubOAuthConnectionName" `
   "PORT=8000"
 
-# Configure the startup command for aiohttp
+# Configure the startup command — run main.py directly (avoids module-path issues with Oryx)
 az webapp config set `
   --resource-group $RG `
   --name $WebAppName `
-  --startup-file "python -m src.main"
+  --startup-file "python src/main.py"
 
 # Enable logging
 az webapp log config `
@@ -270,10 +278,61 @@ az bot authsetting create `
   --provider-scope-string "user repo"
 
 # ============================================================
-# 6c) Capture Azure Bot Direct Line secret (best-effort)
+# 6c) Enable enhanced authentication on Direct Line channel
+#     Required for OAuth sign-in to work in "Test in Web Chat"
+#     Without this, the token exchange / magic code flow fails
+#     and the sign-in popup shows an empty page.
+#     Ref: https://learn.microsoft.com/azure/bot-service/bot-builder-concept-authentication
 # ============================================================
 $ApiVersion = '2023-09-15-preview'
 $BaseUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$RG/providers/Microsoft.BotService/botServices/$BotName/channels/DirectLineChannel"
+
+Write-Host "Enabling enhanced authentication on Direct Line channel..."
+$enhancedAuthBody = @{
+  properties = @{
+    channelName = "DirectLineChannel"
+    properties = @{
+      enhancedAuthenticationEnabled = $true
+      sites = @(
+        @{
+          siteName = "Default Site"
+          isEnabled = $true
+          isWebChatSpeechEnabled = $false
+          isWebchatPreviewEnabled = $true
+          trustedOrigins = @(
+            "https://portal.azure.com",
+            "https://ms.portal.azure.com",
+            "http://localhost:8080"
+          )
+        }
+      )
+    }
+  }
+} | ConvertTo-Json -Depth 5 -Compress
+
+# Write body to a temp file to avoid shell escaping issues with az rest
+$enhancedAuthFile = Join-Path $env:TEMP "enhanced-auth-body.json"
+$enhancedAuthBody | Set-Content -Path $enhancedAuthFile -Encoding utf8
+
+# Use PUT to create/replace the Direct Line channel with enhanced auth enabled
+az rest --method put `
+  --uri "$BaseUri`?api-version=$ApiVersion" `
+  --body "@$enhancedAuthFile" `
+  --headers "Content-Type=application/json" `
+  -o json | Out-Null
+
+Remove-Item $enhancedAuthFile -ErrorAction SilentlyContinue
+
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "Enhanced authentication enabled on Direct Line with trusted origins for Azure Portal."
+} else {
+  Write-Host "WARN: Failed to enable enhanced authentication. You can enable it manually in the Azure Portal:"
+  Write-Host "      Bot resource -> Channels -> Direct Line -> Enhanced authentication"
+}
+
+# ============================================================
+# 6d) Capture Azure Bot Direct Line secret (best-effort)
+# ============================================================
 $ListKeysUrl = "$BaseUri/listChannelWithKeys?api-version=$ApiVersion"
 
 $DLSecret = $null
@@ -369,6 +428,13 @@ if (Test-Path $StartServerFile) {
   $content | Set-Content -Path $StartServerFile -Encoding utf8
 }
 
+# --- Ensure src/__init__.py exists (required for 'python -m src.main') ---
+$InitPyFile = Join-Path $BotPath "src\__init__.py"
+if (-not (Test-Path $InitPyFile)) {
+  Write-Host "Creating src/__init__.py (required for Python package resolution)..."
+  "" | Set-Content -Path $InitPyFile -Encoding utf8
+}
+
 # --- Patch main.py to add enhanced logging configuration ---
 $MainPyFile = Join-Path $BotPath "src\main.py"
 if (Test-Path $MainPyFile) {
@@ -378,7 +444,14 @@ if (Test-Path $MainPyFile) {
 # Licensed under the MIT License.
 
 import logging
+import os
 import sys
+
+# Ensure the app root (parent of src/) is on sys.path so absolute imports work
+# when running directly via 'python src/main.py' (required for Oryx deployments)
+_app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _app_root not in sys.path:
+    sys.path.insert(0, _app_root)
 
 def configure_logging():
     logging.basicConfig(
@@ -401,8 +474,8 @@ def configure_logging():
 
 configure_logging()
 
-from .agent import AGENT_APP, CONNECTION_MANAGER
-from .start_server import start_server
+from src.agent import AGENT_APP, CONNECTION_MANAGER
+from src.start_server import start_server
 
 start_server(
     agent_application=AGENT_APP,

@@ -48,40 +48,46 @@
       // CONFIGURE THESE VALUES
       // ============================================================
       // Direct Line secret from Azure Bot → Channels → Direct Line
-      const DL_SECRET = 'xxxx'
-      // A unique user ID (can be anything for testing)
-      const USER_ID = 'test-user-' + Math.random().toString(36).substring(2, 8);
+      const DL_SECRET = 'YOUR_DIRECT_LINE_SECRET';
+
+      // Direct Line endpoint (global — default for all bots)
+      const DL_DOMAIN = 'https://europe.directline.botframework.com';
+
+      // A unique user ID.
+      const USER_ID = 'dl_test-user-' + Math.random().toString(36).substring(2, 8);
+
+      // Host this file via: python -m http.server 8080
+      // Then open: http://localhost:8080/WebChatOAuthTest.html
 
       // ============================================================
-      // Initialize Web Chat with standard Direct Line
+      // Initialize Web Chat with Direct Line
       // ============================================================
       (async function () {
         try {
-          // Step 1: Exchange the DL secret for a token
-          //   This is optional but recommended — you can also pass the secret directly.
-          //   Using a token is more secure as it's scoped to a single conversation.
-          const tokenRes = await fetch('https://directline.botframework.com/v3/directline/tokens/generate', {
+          // Exchange the secret for a token (server-side call via fetch)
+          const tokenRes = await fetch(DL_DOMAIN + '/v3/directline/tokens/generate', {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer ' + DL_SECRET,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              user: { id: USER_ID, name: 'Test User' }
-            })
+            body: JSON.stringify({ user: { id: USER_ID, name: 'Test User' } })
           });
 
           if (!tokenRes.ok) {
-            throw new Error('Token exchange failed: ' + tokenRes.status + ' ' + tokenRes.statusText);
+            throw new Error('Token exchange failed: ' + tokenRes.status + ' ' + (await tokenRes.text()));
           }
 
           const { token, conversationId } = await tokenRes.json();
           console.log('DL token obtained, conversation:', conversationId);
 
-          // Step 2: Create Direct Line connection
-          const directLine = window.WebChat.createDirectLine({ token });
+          // Create Direct Line connection with the token
+          const directLine = window.WebChat.createDirectLine({
+            domain: DL_DOMAIN + '/v3/directline',
+            token: token
+          });
 
-          // Step 3: Render Web Chat
+          // Render Web Chat
           window.WebChat.renderWebChat(
             {
               directLine: directLine,
