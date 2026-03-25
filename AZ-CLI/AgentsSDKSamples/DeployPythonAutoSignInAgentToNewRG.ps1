@@ -23,7 +23,7 @@
 $SubscriptionId = "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx"
 
 $RG             = "BotResourceGroup"
-$Location       = "eastasia"
+$Location       = "westeurope"
 $Suffix         = "1234"
 
 $PlanName       = "pyautosignin-lin-plan" + $Suffix
@@ -144,11 +144,12 @@ az webapp restart --resource-group $RG --name $WebAppName
 
 # ============================================================
 # 6) Create Azure Bot (registration)
+# Location Can be also "global" for Bot registration, but keep same as RG for simplicity
 # ============================================================
 az bot create `
   --resource-group $RG `
   --name $BotName `
-  --location "global" `
+  --location $Location `
   --appid $AppId `
   --app-type SingleTenant `
   --tenant-id $TenantId `

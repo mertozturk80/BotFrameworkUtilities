@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.14/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.14",
+  "version": "1.0.0",
+  "id": "xxxxxx-xxxxxxxx-xxxxxxxxxxxxxx",
+  "packageName": "com.example.minimalbot",
+  "name": {
+    "short": "MinimalBot",
+    "full": "Minimal Teams Bot"
+  },
+  "description": {
+    "short": "Minimal Teams bot",
+    "full": "A minimal Microsoft Teams bot app for validation and testing."
+  },
+  "developer": {
+    "name": "Example Developer",
+    "websiteUrl": "https://example.com",
+    "privacyUrl": "https://example.com/privacy",
+    "termsOfUseUrl": "https://example.com/terms"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "7f0199c5-5e6f-47a5-8eca-b7f53a68f048",
+      "scopes": [
+        "personal",
+        "team"
+      ],
+      "isNotificationOnly": false,
+      "supportsFiles": false
+    }
+  ],
+  "validDomains": []
+}
